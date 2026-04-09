@@ -1,10 +1,10 @@
-﻿using LinqExamplesForFreshers_ExperiencedIndepth.NorthWind_Connect;
+﻿using LinqExamplesForFreshers_ExperiencedIndepth.Models;
+using LinqExamplesForFreshers_ExperiencedIndepth.NorthWind_Connect;
 using LinqExamplesForFreshers_ExperiencedIndepth.NorthWind_DB_DBConnect;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
 using Newtonsoft.Json;
-using Microsoft.EntityFrameworkCore;
+using Student = LinqExamplesForFreshers_ExperiencedIndepth.Models.Student;
+
 
 
 namespace LinqExamplesForFreshers_ExperiencedIndepth.Controllers
@@ -12,13 +12,13 @@ namespace LinqExamplesForFreshers_ExperiencedIndepth.Controllers
     [Route("api/[controller]")]
     [ApiController]
     public class NormalLinqQueriesController : ControllerBase
-    {        
+    {
         //In EntityFramework Core To extract the data purpose we used linq queries.
 
         NorthwindContext _northwindContext;
         NorthwindDbContext _northwindDbContext;
 
-        public NormalLinqQueriesController(NorthwindContext northwindContext,NorthwindDbContext northwindDbContext)
+        public NormalLinqQueriesController(NorthwindContext northwindContext, NorthwindDbContext northwindDbContext)
         {//add the depencies into constructor of this class
             _northwindContext = northwindContext;
             _northwindDbContext = northwindDbContext;
@@ -39,13 +39,159 @@ namespace LinqExamplesForFreshers_ExperiencedIndepth.Controllers
             //Note:abc means its a localvariablename
             var result = from abc in _northwindDbContext.Employees select abc;
             //sqlqueryconverted by compiler:select * from employees
-            // Serialize
-            string json = System.Text.Json.JsonSerializer.Serialize(result);
-            //Console.WriteLine(json);
+            var jsonSettings = new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore };
 
-            return StatusCode(StatusCodes.Status200OK, json);
+            //It converts your data to jsonformat
+            var convertedData = JsonConvert.SerializeObject(result, jsonSettings);
+            return StatusCode(StatusCodes.Status200OK, convertedData);
+        }
+        [HttpGet]
+        [Route("GetEmployeesDatawith_CityWise")]
+        public async Task<IActionResult> GetAllEmployeesDataCityWise()
+        {
+            //synatx://var result=from localvariablename in datasource  (optional clause ) select localvariablename   
+            //it will return employee data with it department along with all the columns data
+            var result = from a in _northwindDbContext.Employees where a.City == "London" select a;//linqquey 
+            //SqlQuery:     //select * from  Employees where City='London'
+
+            //here photo column having binary data due to that you are getting refrence loop issue to fix this one below line is used.
+            var jsonSettings = new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore };
+            //It converts your data to jsonformat
+            var convertedData = JsonConvert.SerializeObject(result, jsonSettings);
+            return StatusCode(StatusCodes.Status200OK, convertedData);
 
         }
+        [HttpGet]
+        [Route("GetEmployeesDatawith_Fullname")]
+        public async Task<IActionResult> GetrequiredNamesCityWise()
+        {//here we are fetchingall the data and showing only one column only.
+            //Here new keyword is used to return the object data.
+            var result = from a in _northwindDbContext.Employees select new { EmployeeFullName = a.FirstName + a.LastName };
+            //SqlQuery Format:select FirstName+LastName as 'EmployeeFullName' from  Employees 
+
+            var jsonSettings = new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore };
+            //It converts your data to jsonformat
+            var convertedData = JsonConvert.SerializeObject(result, jsonSettings);
+            return StatusCode(StatusCodes.Status200OK, convertedData);
+
+        }
+
+        [HttpGet]
+        [Route("GetOrderDataWithNamestatswiths")]
+        public async Task<IActionResult> GetDataByNamesStartswiths()
+        {//here we are fetchingall employess  data with A letter starts employees Data.
+            var result = from s in _northwindDbContext.Customers where s.ContactName.StartsWith("A") select s;//select s meaning is fetch the data
+            //SQLQUERY:select * from Customers where ContactName like 'A%'
+
+            //It converts your data to jsonformat
+            var convertedData = JsonConvert.SerializeObject(result);
+            return StatusCode(StatusCodes.Status200OK, convertedData);
+
+        }
+        [HttpGet]
+        [Route("GetEmployees&DeptDataByUsingJoins")]
+        public async Task<IActionResult> GetDataByUsingJoins()
+        {
+            //here we are fetching employess&DepartMenent with data by using joins and orderby descending with required columns.
+            //sqlquery:select e.FirstName, e.LastName, e.City, d.DeptName from employee e join Departments d
+            //on d.Id=e.EmpId order by e.City desc
+            var result = from e in _northwindContext.Employees
+                         join d in _northwindContext.Departments
+                         on e.EmpId equals d.Id
+                         orderby e.City descending
+                         select new { e.FirstName, e.LastName, e.City, d.DeptName };
+
+            //It converts your  objectdata to jsonformat
+            var convertedData = JsonConvert.SerializeObject(result);
+            return StatusCode(StatusCodes.Status200OK, convertedData);
+
+        }
+        [HttpGet]
+        [Route("JoinsExampleusingDummyData")]
+        public async Task<IActionResult> JoinsExampleusingDummyData()
+        {
+            //Null values handling with ?? double QuestionMark
+            string name = null;
+
+            string resultData = name ?? "Guest";
+
+
+            //preparing the list of student data with dummy values(it will store student related data)
+            var students = new List<Student>
+            {
+            new Student { StudentId = 1, Name = "Alice", CourseId = 101,StudentAddress="hyd" },
+            new Student { StudentId = 2, Name = "Bob", CourseId = 102,StudentAddress="chenni" },
+             new Student { StudentId = 3, Name = "Charlie", CourseId = 101,StudentAddress="mumbai" }
+            };
+
+            var courses = new List<Course>
+            {
+              new Course { CourseId = 101, CourseName = "Math" },
+              new Course { CourseId = 102, CourseName = "Science" }
+            };
+
+            /* Key Points
+            join... on... equals... is used for inner joins
+            into + DefaultIfEmpty() → Left Join
+            Query syntax looks like SQL
+            Method syntax uses.Join()
+            */
+            //inner join Linq Query with alias names
+            var resultwithAliasNames = from s in students
+                                       join c in courses
+                                       on s.CourseId equals c.CourseId
+                                       select new
+                                       {//here you can select required columns
+                                        //StudentName,CourseName,StudentAddress are the alias names ,you can give any user friendly name.
+                                           StudentOrginalName = s.Name,
+                                           CourseFullName = c.CourseName,
+                                           StudentFullAddress = s.StudentAddress
+                                       };
+            //inner join Linq Query without  alias names
+            var resultwithoutAliasNmes = from s in students
+                                         join c in courses
+                                         on s.CourseId equals c.CourseId
+                                         select new
+                                         {//here you can select required columns 
+                                          //here not used any alias names.alias names are optional.it is not a mandatory.if you want ,you can use .if you don't want ,you can leave it.
+                                             s.Name,
+                                             c.CourseName,
+                                             s.StudentAddress
+                                         };
+            //same Query we can also write using lamda expressions way (inner join in linq query)
+            var LamdaQueryJoinresult = students.Join(
+                     courses,
+                     s => s.CourseId,        // outer key
+                     c => c.CourseId,        // inner key
+                     (s, c) => new
+                     {
+                         StudentName = s.Name,
+                         CourseName = c.CourseName
+                     });
+
+
+
+
+            //Left Join-Query Syntax (using DefaultIfEmpty)  (into + DefaultIfEmpty() → Left Join)
+            //====================================================
+            var Leftjoinresult = from s in students
+                                 join c in courses
+                                 on s.CourseId equals c.CourseId into sc
+                                 from c in sc.DefaultIfEmpty() //for left join used this (into  and DefaultIfEmpty() )
+                                 select new
+                                 {//here you can fetch required  data
+                                     StudentName = s.Name,
+                                     CourseName = c?.CourseName ?? "No Course"
+                                 };
+
+
+            //SqlQuery with innerJoins: select s.Name,c.CourName from students s join courses c on s.CourseId = c.CourseId 
+
+            var result = JsonConvert.SerializeObject(resultwithAliasNames);
+            var result1 = JsonConvert.SerializeObject(resultwithoutAliasNmes);
+            return StatusCode(StatusCodes.Status200OK, result);//here we are return data with statuscode.
+        }
+
 
     }
 }
