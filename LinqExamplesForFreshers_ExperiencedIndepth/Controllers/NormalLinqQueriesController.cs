@@ -222,4 +222,43 @@ For Northwind_DB Datbase model class genertions purpose use this command
 PM> Scaffold-DbContext "Server=DESKTOP-13B42NJ;Database=Northwind_DB;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True;" Microsoft.EntityFrameworkCore.SqlServer -OutputDir NorthWind_DB_DBConnect
 ============================================================================================
 
+Serialization and DeSerialization:
+==========================================
+Serialization: Serialization means  convert the data from object to json format.
+DeSerialization:DeSerialization means convert the data from json to object format.
+==================================================================================
+=>In DotnetCore To perfomr this Serialization and DeSerialization process,we need to install Newtonsoft.Json package from manage nuget package manager.
+=>Serialization:For Serialization process use       var result= Jsonconvert.Serialize(objectname);
+=>DeSerialization:For DeSerialization process use   var result=Jsonconvert.Deserializeobject<modelclassname>(jsonstring);
+
+
+
+
 */
+
+
+/*
+what is the use of ?? in c#
+
+In C#, the ?? operator is called the null-coalescing operator.
+It’s used to provide a default value when something is null.
+
+🔹 Basic Syntax
+var result = value ?? defaultValue;
+
+👉 Meaning:
+
+If value is NOT null → use value
+If value is null → use defaultValue
+🔹 Simple Example
+=========================
+string name = null;
+
+string result = name ?? "Guest";
+
+Console.WriteLine(result);
+
+✅ Output:
+
+Guest
+ */
